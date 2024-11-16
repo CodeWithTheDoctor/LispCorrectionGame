@@ -1,6 +1,6 @@
 {% extends "template.html" %}
 
-{% block title %}ArticuAid{% endblock %}
+{% block title %}KoalaWala{% endblock %}
 
 {% block content %}
 <!DOCTYPE html>
@@ -24,10 +24,21 @@
         <button id="startGame" class="main-button">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6">
                 <path fill-rule="evenodd" d="M4.5 5.653c0-1.427 1.529-2.33 2.779-1.643l11.54 6.347c1.295.712 1.295 2.573 0 3.286L7.28 19.99c-1.25.687-2.779-.217-2.779-1.643V5.653Z" clip-rule="evenodd" />
-              </svg>              
+            </svg>
         </button>
+        <button id="moreResources" class="secondary-button">More Resources</button>
     </div>
-    <button id="moreResources" class="secondary-button">More Resources</button>
+    
+    <!-- New recording view -->
+    <div id="recordingView" class="container hidden">
+        <h2>Say the word "Six"</h2>
+        <button id="startRecording" class="main-button">Start Recording</button>
+        <div id="recordingControls" class="hidden">
+            <button id="submitRecording" class="main-button">Submit</button>
+            <button id="retryRecording" class="secondary-button">Retry</button>
+        </div>
+    </div>
+    
     <script src="app/static/js/script.js"></script>
 </body>
 </html>
