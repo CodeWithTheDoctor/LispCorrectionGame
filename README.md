@@ -6,7 +6,7 @@
 `source venv/bin/activate`
 `pip install -r requirements.txt`
 
-`export FLASK_APP=app`
-`export FLASK_ENV=development`
-
-`flask run`
+- You need to install vercel cli
+- then:
+`vercel dev`
+(deploy it if needed, and make vercel acc if needed. It's free)
