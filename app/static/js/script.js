@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Background animation logic
+    // Background animation logic (unchanged)
     anime({
         targets: '.shape',
         translateX: function () {
@@ -23,9 +23,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const recordingView = document.getElementById('recordingView');
     const recordingControls = document.getElementById('recordingControls');
     const startRecordingButton = document.getElementById('startRecording');
-    const stopRecordingButton = document.createElement('button');
-    stopRecordingButton.textContent = 'Stop Recording';
-    stopRecordingButton.classList.add('main-button', 'hidden');
+    const stopRecordingButton = document.getElementById('stopRecording');
+    const submitRecordingButton = document.getElementById('submitRecording');
+    const playRecordingButton = document.createElement('button');
+    playRecordingButton.textContent = 'Play Recording';
+    playRecordingButton.classList.add('main-button', 'hidden');
+    recordingControls.appendChild(playRecordingButton);
+    const reRecordButton = document.getElementById('retryRecording');
+
     const recordingStatus = document.createElement('p');
     recordingStatus.style.color = 'red';
     recordingStatus.textContent = 'Recording...';
@@ -35,99 +40,122 @@ document.addEventListener('DOMContentLoaded', () => {
     let mediaRecorder;
     let recordedChunks = [];
     let stream; // Keep a reference to the stream
+    let audioBlob;
 
     // Event listeners
     startGameButton.addEventListener('click', () => {
+        console.log('Start Game button clicked.');
         mainContainer.classList.add('hidden');
         recordingView.classList.remove('hidden');
     });
 
-    // startRecordingButton.addEventListener('click', async () => {
-    //     startRecordingButton.classList.add('hidden');
-    //     stopRecordingButton.classList.remove('hidden');
-    //     recordingStatus.classList.remove('hidden');
+    startRecordingButton.addEventListener('click', async () => {
+        console.log('Start Recording button clicked.');
+        startRecordingButton.classList.add('hidden');
+        stopRecordingButton.classList.remove('hidden');
+        recordingStatus.classList.remove('hidden');
 
-    //     try {
-    //         stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    //         recordedChunks = [];
-    //         mediaRecorder = new MediaRecorder(stream);
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            console.log('Microphone access granted.');
+            recordedChunks = [];
+            mediaRecorder = new MediaRecorder(stream);
+            console.log('MediaRecorder initialized.');
 
-    //         mediaRecorder.ondataavailable = (event) => {
-    //             if (event.data.size > 0) {
-    //                 recordedChunks.push(event.data);
-    //             }
-    //         };
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    recordedChunks.push(event.data);
+                    console.log('Data available:', event.data.size);
+                }
+            };
 
-    //         mediaRecorder.onstop = () => {
-    //             recordingStatus.classList.add('hidden');
-    //             if (stream) {
-    //                 stream.getTracks().forEach(track => track.stop()); // Stop the microphone
-    //             }
-    //             stopRecordingButton.classList.add('hidden');
-    //             submitRecordingButton.classList.remove('hidden');
-    //         };
+            mediaRecorder.onstop = () => {
+                console.log('MediaRecorder stopped.');
+                recordingStatus.classList.add('hidden');
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop()); // Stop the microphone
+                    console.log('Microphone stream stopped.');
+                }
+                stopRecordingButton.classList.add('hidden');
+                submitRecordingButton.classList.remove('hidden');
+                playRecordingButton.classList.remove('hidden');
+                reRecordButton.classList.remove('hidden');
 
-    //         mediaRecorder.start();
-    //     } catch (err) {
-    //         console.error('Error accessing microphone:', err);
-    //         alert('Could not access your microphone. Please check your permissions.');
-    //     }
-    // });
+                // Create a blob for playback
+                audioBlob = new Blob(recordedChunks, { type: 'audio/webm' });
+                console.log('Audio blob created:', audioBlob);
+            };
+
+            mediaRecorder.start();
+            console.log('Recording started.');
+        } catch (err) {
+            console.error('Error accessing microphone:', err);
+            alert('Could not access your microphone. Please check your permissions.');
+        }
+    });
 
     stopRecordingButton.addEventListener('click', () => {
         if (mediaRecorder && mediaRecorder.state === 'recording') {
             mediaRecorder.stop();
+            console.log('Recording stopped by user.');
             recordingControls.classList.remove('hidden');
         }
     });
 
-    startRecordingButton.addEventListener('click', () => {
-        startRecordingButton.classList.add('hidden');;
-        recordingStatus.classList.add('hidden');
-        recordingStatus.classList.remove('hidden');
+    playRecordingButton.addEventListener('click', () => {
+        if (audioBlob) {
+            console.log('Playing back recording.');
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const audio = new Audio(audioUrl);
+            audio.play();
+        } else {
+            alert('No recording available to play.');
+            console.log('No recording available for playback.');
+        }
+    });
 
-        // Process the recorded audio
+    reRecordButton.addEventListener('click', () => {
+        console.log('Re-recording initiated.');
+        recordedChunks = [];
+        audioBlob = null;
+        playRecordingButton.classList.add('hidden');
+        reRecordButton.classList.add('hidden');
+        submitRecordingButton.classList.add('hidden');
+        startRecordingButton.classList.remove('hidden');
+        console.log('Ready to re-record.');
+    });
+
+    submitRecordingButton.addEventListener('click', () => {
+        if (recordedChunks.length === 0) {
+            alert('No recording available. Please try again.');
+            console.log('Submit button clicked, but no recording available.');
+            return;
+        }
+
+        // Convert recorded chunks to a Blob
         const blob = new Blob(recordedChunks, { type: 'audio/webm' });
-        const reader = new FileReader();
+        console.log('Submitting audio blob:', blob);
+        const formData = new FormData();
+        formData.append('file', blob, 'recording.webm');
 
-        reader.onload = async () => {
-            if ('webkitSpeechRecognition' in window) {
-                const recognition = new webkitSpeechRecognition();
-                recognition.lang = 'en-US';
-                recognition.continuous = false; // Single-word recognition
-                recognition.interimResults = false;
-
-                recognition.onresult = (event) => {
-                    let spokenText = event.results[0][0].transcript.toLowerCase();
-                    console.log('Recognized text:', spokenText);
-
-                    // Normalize potential numeric values to string equivalents
-                    if (spokenText === '6') {
-                        spokenText = 'six';
-                    }
-
-                    if (spokenText === 'six') {
-                        alert('You pronounced it correctly!');
-                    } else {
-                        alert('Try again.');
-                    }
-                };
-                recognition.onerror = (event) => {
-                    console.error('Speech recognition error:', event);
-                    alert(`Speech recognition error: ${event.error}`);
-                };
-                recognition.onend = () => {
-                    console.log('Speech recognition ended.');
-                    recordingStatus.classList.add('hidden');
-                    startRecordingButton.classList.remove('hidden');
-
-                };
-
-                recognition.start();
+        // Send the audio to the endpoint
+        console.log('Sending audio to the server...');
+        fetch('https://lisp.developerash.net/process-audio', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Server response:', data);
+            if (data.result === false) {
+                alert('Word pronounced correctly!');
             } else {
-                alert('Speech recognition not supported in this browser.');
+                alert('Try again.');
             }
-        };
-        reader.readAsDataURL(blob);
+        })
+        .catch(error => {
+            console.error('Error during fetch:', error);
+            alert('An error occurred while processing the audio.' + error);
+        });
     });
 });
